@@ -333,6 +333,7 @@ class Unicorn {
         }
 
         if (this.arcade.state === 'jump') {
+            this.animation.frame = 1
             audio.playAudio('jump')
         }
 
@@ -560,7 +561,7 @@ class Game {
             if (!game.show_end_menu) {
                 game.show_end_menu = true
                 game.enable_reset = 1453
-                audio.playAudio('over')
+                audio.playAudio('over', true)
                 audio.stopAudio('main')
             }
         }
@@ -574,6 +575,7 @@ class Game {
             if (keyboard.getActionSign('jump') !== 'up') {
                 game = new Game()
                 audio.playAudio('main', true)
+                audio.stopAudio('over')
             }
         }
 

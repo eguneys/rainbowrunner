@@ -200,7 +200,7 @@ export class ArcadePlayer implements PositionBehavior {
                 this.body.vvs = -1
                 this.body.avs = -1
                 this.state = 'jumping'
-            }
+            } break
             case 'jumping': {
 
             }
