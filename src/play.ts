@@ -8,6 +8,8 @@ export class AnimationShot {
     tSec = 0
     fps = 4
 
+    dead = false
+
     get x() {
         return this.frames[this.frame]
     }
@@ -24,6 +26,7 @@ export class AnimationShot {
         if (this.tSec > frameDuration) {
             this.frame += 1
             if (this.frame >= this.frames.length) {
+                this.dead = true
                 this.frame -= 1
             }
             this.tSec %= frameDuration
@@ -60,6 +63,43 @@ export class AnimationLoop {
             this.tSec %= frameDuration
         }
     }
+}
+
+class RainDrop {
+
+    animation = new AnimationLoop([0, 1, 2, 3])
+
+    constructor(public x: number, public y: number) {
+        this.animation.fps = 12
+    }
+
+    update(dt: number) {
+        this.x -= dt * 0.1
+        this.y += dt * 0.3
+        this.animation.update(dt)
+    }
+
+}
+
+class RainDrop2 {
+    animation = new AnimationShot([0, 1, 1, 2, 2, 1, 3, 3])
+
+    v = -20 - Math.random() * -20
+    constructor(public x: number, public y: number) {
+        this.animation.fps = 3 + Math.random() * 2
+    }
+
+    life = 600
+    update(dt: number) {
+        this.v *= 0.8
+
+        this.y += this.v * dt * 0.01
+        this.y += dt * 0.01
+        this.life -= dt
+        this.animation.update(dt)
+    }
+
+
 }
 
 class Dust {
@@ -115,13 +155,13 @@ export class Camera {
 
     readonly _frustum: Box
 
-    shake_spring_x = new Spring(0, 0, 500, 8)
+    shake_spring_x = new Spring(0, 0, 700, 6)
     shake_spring_y = new Spring(0, 0, 500, 8)
 
     shake_cool = 500
 
     shake() {
-        this.shake_spring_x.velocity -= this.shake_cool * 1.1
+        this.shake_spring_x.velocity -= this.shake_cool * 0.9
         this.shake_spring_y.velocity -= this.shake_cool * 1.3
 
         this.shake_cool -= 100
@@ -181,7 +221,7 @@ export class Camera {
 
 export class CameraZones {
 
-    static Deadzone: Box = { x: 290, y: 0, w: 120, h: 160 }
+    static Deadzone: Box = { x: 290, y: -40, w: 120, h: 160 }
 
     arcade = ArcadeCameraCruise.create()
 
@@ -220,15 +260,60 @@ export class CameraZones {
     }
 }
 
+class Trail {
+
+    animation = new AnimationShot([0, 1, 2, 3, 4, 5, 6])
+
+    constructor(readonly x: number, readonly y: number) {
+        this.animation.fps = 12
+    }
+
+    update(dt: number) {
+        this.animation.update(dt)
+    }
+}
+
+class Trails {
+    trails: Trail[]
+
+    constructor() {
+        this.trails = []
+    }
+
+    cool = 200
+
+    update(dt: number) {
+        for (let trail of this.trails) {
+            trail.update(dt)
+        }
+
+        if (game.unicorn.arcade.state === 'landed2') {
+            if (game.unicorn.animation.frame === 1) {
+                if (this.cool === 0) {
+                    this.trails.push(new Trail(game.unicorn.box.x, game.unicorn.box.y + game.unicorn.box.h - 24))
+                    this.cool = 60
+                }
+            }
+            if (game.unicorn.animation.frame === 3) {
+                if (this.cool === 0) {
+                    this.trails.push(new Trail(game.unicorn.box.x + 48, game.unicorn.box.y + game.unicorn.box.h - 24))
+                    this.cool = 160
+                }
+            }
+        }
+        this.cool = Math.max(0, this.cool - dt)
+
+        this.trails = this.trails.filter(_ => !_.animation.dead)
+    }
+}
+
 class Unicorn {
     get box() {
         return { x: this.arcade.body.x, y: this.arcade.body.y, w: 48 * 2, h: 36 * 2 }
     }
     get down_box() {
-        return { x: this.arcade.body.x + 12, y: this.arcade.body.y + 36 * 2, w: 48, h: 36 }
+        return { x: this.arcade.body.x - 12, y: this.arcade.body.y + 36 * 2, w: 48 + 48 + 12, h: 36 }
     }
-
-
 
     arcade = ArcadePlayer.create()
 
@@ -251,10 +336,10 @@ class Unicorn {
     }
 }
 
-type PlatformLabel = '0' | '1' | '2' | '3'
+type PlatformLabel = '0' | '1' | '2' | '3' | '4' | '5'
 class PlatformGenerator {
 
-    static Patterns = `0 111 22 23 3 3 1 2 3 12 1  3 31 321 1 3 23 12  2 3  3 32 31 3 2 1 3 2 2 3 2 3 3 3 2 2 2  2  1  2  2`
+    static Patterns = `4 0 111 232 21 2  3 2 1  2 1 21 5 21 12 1 5  2 32 5 2321 1 32 21 32 5 2 3 5 3 32 31 3 5 2 1 5 3 2 5 2 3 2 3 3 3 2 2 2 5 5 5 2 1  2  32`
 
     stash: Record<PlatformLabel, Platform[]>
 
@@ -266,13 +351,17 @@ class PlatformGenerator {
 
     constructor() {
         this.stash = {
+            '5': [new Platform(0, 330, 1620, '5')],
+            '4': [new Platform(0, 365, 1920, '4')],
             '0': [new Platform(0, 360, 1920, '0')],
             '1': [new Platform(0, 280, 600, '1'), new Platform(0, 280, 600, '1'), new Platform(0, 280, 600, '1'),],
-            '2': [new Platform(0, 240, 300, '2'), new Platform(0, 240, 300, '2'), new Platform(0, 240, 300, '2'),],
+            '2': [new Platform(0, 320, 300, '2'), new Platform(0, 240, 300, '2'), new Platform(0, 240, 300, '2'),],
             '3': [new Platform(0, 240, 200, '3'), new Platform(0, 240, 200, '3'), new Platform(0, 240, 200, '3')],
         }
 
         this.blit_canvas = {
+            '5': document.createElement('canvas'),
+            '4': document.createElement('canvas'),
             '0': document.createElement('canvas'),
             '1': document.createElement('canvas'),
             '2': document.createElement('canvas'),
@@ -281,7 +370,7 @@ class PlatformGenerator {
 
 
         let tcx = cx
-        for (let p of ['0', '1', '2', '3']) {
+        for (let p of ['5', '4', '0', '1', '2', '3']) {
             let canvas = this.blit_canvas[p as PlatformLabel]
             canvas.width = 1920
             canvas.height = 1080
@@ -329,6 +418,65 @@ class PlatformGenerator {
     }
 }
 
+class Cloud {
+    drops2: RainDrop2[]
+    rain_drops: RainDrop[]
+
+    rain_cool = 200
+
+    rain() {
+        let cut = 16 + Math.random() * 16
+        for (let i = 0; i < 70; i++) {
+            if (i > cut) break
+            this.rain_drops.push(new RainDrop(30 + i * 16, -10 - Math.random() * 20 - Math.random() * 100))
+            this.rain_drops.push(new RainDrop(30 + (i + 10) * 16, -10 - Math.random() * 20 - Math.random() * 100))
+            this.rain_drops.push(new RainDrop(70 * 16 - i * 16, -10 - Math.random() * 20))
+        }
+    }
+
+    constructor(public x: number, public y: number) {
+        this.rain_drops = []
+        this.drops2 = []
+        this.rain()
+    }
+
+    update(dt: number) {
+
+
+        this.rain_cool = Math.max(0, this.rain_cool - dt)
+
+        if (this.rain_cool === 0) {
+            this.rain()
+            this.rain_cool = 100 + Math.random() * 300
+        }
+
+        for (let drop of this.rain_drops) {
+            drop.update(dt)
+        }
+
+        let platform = game.platforms.find(_ => _.x + _.width > game.camera.frustum.x)!
+        if (platform.label === '4' || platform.label === '5') {
+            let res = []
+            for (let drop of this.rain_drops) {
+                let x = drop.x + game.camera.frustum.x
+                let y = drop.y + game.camera.frustum.y - 16
+                if (x > platform.x && x < platform.x + platform.width - 24 && y > 360 - platform.height - 16 && y < 360 - platform.height - 16 + 16) {
+                    this.drops2.push(new RainDrop2(x, y))
+                } else {
+                    res.push(drop)
+                }
+            }
+            this.rain_drops = res
+        }
+
+        for (let drop2 of this.drops2) {
+            drop2.update(dt)
+        }
+
+        this.drops2 = this.drops2.filter(_ => _.life > 0)
+
+    }
+}
 
 class Game {
 
@@ -345,7 +493,13 @@ class Game {
 
     dust: Dust[]
 
+    trails: Trails
+
+    cloud: Cloud
+
     constructor() {
+        this.trails = new Trails()
+        this.cloud = new Cloud(0, 0)
         this.dust = []
         this.generator = new PlatformGenerator()
         this.platforms = []
@@ -398,14 +552,16 @@ class Game {
         if (this.unicorn.arcade.body.y > 400) {
             if (!game.show_end_menu) {
                 game.show_end_menu = true
-                game.enable_reset = 2000
+                game.enable_reset = 1453
             }
         }
 
         game.enable_reset = Math.max(0, game.enable_reset - dt)
 
-
         if (game.show_end_menu && game.enable_reset === 0) {
+
+            game.unicorn.arcade.state = 'idle'
+
             if (keyboard.getActionSign('jump') !== 'up') {
                 game = new Game()
             }
@@ -418,6 +574,10 @@ class Game {
         this.unicorn.update(dt)
 
         this.camera.update(dt)
+
+        this.cloud.update(dt)
+
+        this.trails.update(dt)
     }
 }
 
@@ -463,8 +623,15 @@ export function _render() {
     cx.fillStyle = '#e4d2aa'
     cx.fillRect(0, 0, 640, 360)
 
+    for (let drop of game.cloud.rain_drops) {
+        draw_spr(192, 160 + drop.animation.x * 8, 8, 8, drop.x, drop.y, 2, 2)
+    }
+
+
 
     cx.translate(-game.camera.frustum.x, -game.camera.frustum.y)
+
+
     for (let platform of game.platforms) {
         let w = platform.width
         let h = platform.height
@@ -478,6 +645,14 @@ export function _render() {
     for (let dust of game.dust) {
         draw_spr(0 + dust.animation.x * 48, 120, 48, 48, dust.x, dust.y, 1.8, 1.8)
     }
+    for (let drop2 of game.cloud.drops2) {
+        draw_spr(192, 128 + drop2.animation.x * 8, 8, 8, drop2.x, drop2.y, 2, 2)
+    }
+
+    for (let trail of game.trails.trails) {
+        draw_spr(0 + trail.animation.x * 24, 112, 24, 8, trail.x, trail.y, 3, 3)
+    }
+
 
     if (game.show_end_menu) {
 
@@ -497,20 +672,24 @@ function render_unicorn() {
 }
 
 function render_platform(platform: Platform) {
+    let _sx = 0
+    if (platform.label === '4' || platform.label === '5') {
+        _sx = 24
+    }
     let x = 0
     let y = 0
-    draw_spr(0, 0, 8, 8, x, y, 4, 4)
+    draw_spr(_sx + 0, 0, 8, 8, x, y, 4, 4)
     for (let i = 8 * 4; i < platform.width - 8 * 4; i += 8 * 4) {
-        draw_spr(8, 0, 8, 8, x + i, y, 4, 4)
+        draw_spr(_sx + 8, 0, 8, 8, x + i, y, 4, 4)
     }
-    draw_spr(16, 0, 8, 8, x + platform.width - 8 * 4, y, 4, 4)
+    draw_spr(_sx + 16, 0, 8, 8, x + platform.width - 8 * 4, y, 4, 4)
 
     for (let j = 8 * 4; j < platform.height - 8 * 4; j += 8 * 4) {
-        draw_spr(0, 8, 8, 8, x, y + j, 4, 4)
+        draw_spr(_sx + 0, 8, 8, 8, x, y + j, 4, 4)
         for (let i = 8 * 4; i < platform.width - 8 * 4; i += 8 * 4) {
-            draw_spr(8, 8, 8, 8, x + i, y + j, 4, 4)
+            draw_spr(_sx + 8, 8, 8, 8, x + i, y + j, 4, 4)
         }
-        draw_spr(16, 8, 8, 8, x + platform.width - 8 * 4, y + j, 4, 4)
+        draw_spr(_sx + 16, 8, 8, 8, x + platform.width - 8 * 4, y + j, 4, 4)
     }
 }
 
@@ -565,6 +744,10 @@ export function _set_canvas(canvas: HTMLCanvasElement) {
     keyboard.add_keymapping('k', 'jump')
     keyboard.add_keymapping('l', 'jump')
     keyboard.add_keymapping('i', 'jump')
+    keyboard.add_keymapping('ArrowUp', 'jump')
+    keyboard.add_keymapping('ArrowLeft', 'jump')
+    keyboard.add_keymapping('ArrowRight', 'jump')
+    keyboard.add_keymapping('ArrowDown', 'jump')
 }
 
 export function render_box(box: Box, color = 'white') {
