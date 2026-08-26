@@ -135,7 +135,7 @@ export function resolve_manifold(a: { x: number, y: number }, manifold: Manifold
     a.y += manifold.ny * manifold.depth
 }
 
-export type ArcadePlayerState = 'fall' | 'landed' | 'landed2' | 'jumping' | 'idle'
+export type ArcadePlayerState = 'fall' | 'landed' | 'landed2' | 'jumping' | 'idle' | 'jump'
 export class ArcadePlayer implements PositionBehavior {
     static create = () => {
         let res = new ArcadePlayer()
@@ -191,13 +191,16 @@ export class ArcadePlayer implements PositionBehavior {
             case 'landed2': {
                 if (this.jump_buffer > 0) {
                     this.jump_buffer = 0
-                    this.state = 'jumping'
+                    this.state = 'jump'
 
-                    this.body.vv = this.body.maxSpeedV
-                    this.body.vvs = -1
-                    this.body.avs = -1
                 }
             } break
+            case 'jump': {
+                this.body.vv = this.body.maxSpeedV
+                this.body.vvs = -1
+                this.body.avs = -1
+                this.state = 'jumping'
+            }
             case 'jumping': {
 
             }

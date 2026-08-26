@@ -1,6 +1,8 @@
 import { ArcadeCameraCruise, ArcadePlayer, Empty_Manifold, satAABB } from "./arcade";
+import { AudioPlayer } from "./audioplayer";
 import { type Box, type Sign } from "./collision"
 import { Keyboard } from "./keyboard";
+import { song_hello } from "./songs";
 
 export class AnimationShot {
     frame = 0
@@ -330,6 +332,10 @@ class Unicorn {
             req_jump: keyboard.getActionSign('jump')
         }
 
+        if (this.arcade.state === 'jump') {
+            audio.playAudio('jump')
+        }
+
         this.arcade.update(dt)
 
         this.animation.update(dt)
@@ -547,12 +553,15 @@ class Game {
             this.dust.push(new Dust(this.unicorn.box.x, this.unicorn.box.y))
 
             this.camera.shake()
+            audio.playAudio('landed')
         }
 
         if (this.unicorn.arcade.body.y > 400) {
             if (!game.show_end_menu) {
                 game.show_end_menu = true
                 game.enable_reset = 1453
+                audio.playAudio('over')
+                audio.stopAudio('main')
             }
         }
 
@@ -564,6 +573,7 @@ class Game {
 
             if (keyboard.getActionSign('jump') !== 'up') {
                 game = new Game()
+                audio.playAudio('main', true)
             }
         }
 
@@ -603,13 +613,13 @@ export function _update(dt: number) {
 
     if (first_key_pressed && !first_audio_initialized) {
         first_audio_initialized = true
-        //audio.playAudio('main', true)
+        audio.playAudio('main', true)
     }
 
     game.update(dt)
 
     keyboard.update()
-    //audio.update(dt)
+    audio.update(dt)
 }
 
 
@@ -706,10 +716,11 @@ export function draw_spr(sx: number, sy: number, sw: number, sh: number, x: numb
     //cx.drawImage(spr_png, sx, sy, sw, sh, x, y, Math.floor(sw * scale_x), Math.floor(sh * scale_y))
 }
 
+let audio: AudioPlayerManager
 let spr_png!: HTMLImageElement
 export async function _load() {
 
-    //audio = await AudioPlayerManager.loadAudio()
+    audio = await AudioPlayerManager.loadAudio()
 
     spr_png = new Image()
     spr_png.src = './sprites.png'
@@ -758,20 +769,21 @@ export function render_box(box: Box, color = 'white') {
 
 export type AudioPlayback = { stop: () => void, setVolume: (_: number) => void }
 
-/*
 class AudioPlayerManager {
     static loadAudio = async () => {
         let res = new AudioPlayerManager()
 
-        res.audio.set('broom', await AudioPlayer.init(broom_song, 110))
-        res.audio.set('main', await AudioPlayer.init(main_song, 80))
-        res.audio.set('jump', await AudioPlayer.init(song_hello.slice(23, 35), 333))
-        res.audio.set('end_drag', await AudioPlayer.init(song_hello.slice(6, 7), 330))
-        res.audio.set('begin_drag', await AudioPlayer.init(song_hello.slice(17, 18), 330))
-        res.audio.set('slide', await AudioPlayer.init(song_hello.slice(37, 40), 320))
+        //res.audio.set('broom', await AudioPlayer.init(broom_song, 110))
+        res.audio.set('main', await AudioPlayer.init(song_hello, 120))
+        res.audio.set('jump', await AudioPlayer.init('AEgc', 270))
+        res.audio.set('landed', await AudioPlayer.init('80', 330))
+        res.audio.set('over', await AudioPlayer.init('0A3E8g0A2E7e0B3C6c1C0D6a0d1e2fefefa a a 0 0 ;', 130))
+        //res.audio.set('end_drag', await AudioPlayer.init(song_hello.slice(6, 7), 330))
+        //res.audio.set('begin_drag', await AudioPlayer.init(song_hello.slice(17, 18), 330))
+        //res.audio.set('slide', await AudioPlayer.init(song_hello.slice(37, 40), 320))
 
-        res.audio.set('flash', await AudioPlayer.init(song_hello.slice(8, 13).repeat(2).concat(song_hello.slice(5, 8).repeat(3)).concat(song_hello.slice(0, 5).repeat(2)), 301))
-        res.audio.set('shuffle', await AudioPlayer.init(song_hello.slice(8, 13).repeat(3), 331))
+        //res.audio.set('flash', await AudioPlayer.init(song_hello.slice(8, 13).repeat(2).concat(song_hello.slice(5, 8).repeat(3)).concat(song_hello.slice(0, 5).repeat(2)), 301))
+        //res.audio.set('shuffle', await AudioPlayer.init(song_hello.slice(8, 13).repeat(3), 331))
         return res
     }
 
@@ -834,7 +846,6 @@ class AudioPlayerManager {
     }
 
 }
-    */
 
 export function arr_shuffle<A>(array: Array<A>) {
     let currentIndex = array.length;
