@@ -2,7 +2,7 @@ import { ArcadeCameraCruise, ArcadePlayer, Empty_Manifold, satAABB } from "./arc
 import { AudioPlayer } from "./audioplayer";
 import { type Box, type Sign } from "./collision"
 import { Keyboard } from "./keyboard";
-import { song_hello } from "./songs";
+import { rainbow_song, song_hello } from "./songs";
 
 export class AnimationShot {
     frame = 0
@@ -350,7 +350,7 @@ class Unicorn {
 type PlatformLabel = '0' | '1' | '2' | '3' | '4' | '5'
 class PlatformGenerator {
 
-    static Patterns = `4 0 111 232 21 2  3 2 1  2 1 21 5 21 12 1 5  2 32 5 2321 1 32 21 32 5 2 3 5 3 32 31 3 5 2 1 5 3 2 5 2 3 2 3 3 3 2 2 2 5 5 5 2 1  2  32`
+    static Patterns = `4 0 111 232 21 2  3 2 1  2 1 21 5 21 12 1 5  2 32 5 2321 1 32 21 32 5 2 3 1 3 32 31 3 5 2 1 5 3 2 5 2 3 2 3 3 3 2 2 2 5 5 5 2 1  2  32`
 
     stash: Record<PlatformLabel, Platform[]>
 
@@ -574,7 +574,6 @@ class Game {
                 game.show_end_menu = true
                 game.enable_reset = 1453
                 audio.playAudio('over', true)
-                audio.stopAudio('main')
             }
         }
 
@@ -586,8 +585,7 @@ class Game {
 
             if (keyboard.getActionSign('jump') !== 'up') {
                 game = new Game()
-                audio.playAudio('main', true)
-                audio.stopAudio('over')
+                audio.playAudio('rainbow', true)
             }
         }
 
@@ -602,7 +600,30 @@ class Game {
         this.cloud.update(dt)
 
         this.trails.update(dt)
+
+
+
+        if (Math.abs(game.unicorn.box.x - game.rainbow.x) < 2000) {
+            if (!this.is_rainbow_song_playing) {
+                this.is_rainbow_song_playing = true
+                if (this.show_end_menu) {
+
+                } else {
+                    audio.playAudio('rainbow', true)
+                }
+            }
+        } else {
+            if (this.is_rainbow_song_playing) {
+                this.is_rainbow_song_playing = false
+                if (this.show_end_menu) {
+                } else {
+                    audio.playAudio('main', true)
+                }
+            }
+        }
     }
+
+    is_rainbow_song_playing = false
 }
 
 
@@ -627,7 +648,7 @@ export function _update(dt: number) {
 
     if (first_key_pressed && !first_audio_initialized) {
         first_audio_initialized = true
-        audio.playAudio('main', true)
+        audio.playAudio('rainbow', true)
     }
 
     game.update(dt)
@@ -695,7 +716,7 @@ export function _render() {
 
 function render_unicorn() {
     let y = 160
-    if (Math.abs(game.unicorn.box.x - game.rainbow.x) < 1000) {
+    if (Math.abs(game.unicorn.box.x - game.rainbow.x) < 2000) {
         y = 72
     }
     draw_spr(0 + game.unicorn.animation.x * 48, y, 48, 36, game.unicorn.box.x, game.unicorn.box.y, 2, 2)
@@ -794,6 +815,7 @@ class AudioPlayerManager {
         let res = new AudioPlayerManager()
 
         //res.audio.set('broom', await AudioPlayer.init(broom_song, 110))
+        res.audio.set('rainbow', await AudioPlayer.init(rainbow_song, 150))
         res.audio.set('main', await AudioPlayer.init(song_hello, 120))
         res.audio.set('jump', await AudioPlayer.init('AEgc', 270))
         res.audio.set('landed', await AudioPlayer.init('80', 330))
@@ -816,10 +838,15 @@ class AudioPlayerManager {
     }
 
     playAudio(name: string, loop: boolean = false) {
-        let pl = this.audio.get(name)!.play(loop)
         if (loop) {
+            for (let [key, l] of this.looping) {
+                l.stop()
+                this.looping.delete(key)
+            }
+            let pl = this.audio.get(name)!.play(loop)
             this.looping.set(name, pl)
         } else {
+            let pl = this.audio.get(name)!.play(loop)
             pl.setVolume(0.5)
         }
 
