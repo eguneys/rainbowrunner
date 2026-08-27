@@ -515,6 +515,10 @@ class Game {
 
     cloud: Cloud
 
+    get distance() {
+        return this.unicorn.box.x / 1000
+    }
+
     constructor() {
         this.rainbow = new Rainbow(1000, 360 - 365)
         this.trails = new Trails()
@@ -683,6 +687,19 @@ export function _render() {
         let x = platform.x
         let y = 360 - h
         cx.drawImage(game.generator.blit_canvas[platform.label], 0, 0, w, h, x, y, w, h)
+
+        if (platform.label === '4' || platform.label === '5') {
+            x = Math.min(Math.max(x, game.unicorn.box.x + 100), x + w - 1000)
+            x += game.camera.shake_spring_x.position
+            y += game.camera.shake_spring_y.position
+            cx.strokeStyle = 'gray'
+            cx.textBaseline = 'middle'
+            cx.font = '30px sans-serif'
+            cx.lineWidth = 1
+            cx.strokeText(`Distance: ${game.distance.toFixed(1)}m`, x + 100, y + 100)
+            cx.fillStyle = 'white'
+            cx.fillText(`Distance: ${game.distance.toFixed(1)}m`, x + 100, y + 100)
+        }
     }
 
     render_unicorn()
@@ -701,8 +718,17 @@ export function _render() {
 
     draw_spr(48, 0, 112, 64, game.rainbow.x, game.rainbow.y - 320, 5, 5)
 
+    cx.translate(game.camera.frustum.x, game.camera.frustum.y)
     if (game.show_end_menu) {
-
+        let x = 360
+        let y = 180
+        cx.strokeStyle = 'gray'
+        cx.textBaseline = 'middle'
+        cx.font = '30px sans-serif'
+        cx.lineWidth = 1
+        cx.strokeText(`Distance: ${game.distance.toFixed(1)}m`, x, y + 100)
+        cx.fillStyle = 'white'
+        cx.fillText(`Distance: ${game.distance.toFixed(1)}m`, x, y + 100)
     }
 
     if (false) {
