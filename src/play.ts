@@ -672,6 +672,16 @@ export function _render() {
     cx.fillStyle = '#e4d2aa'
     cx.fillRect(0, 0, 640, 360)
 
+
+    cx.save()
+    cx.translate(480, -100)
+    cx.rotate(0.25 * Math.PI)
+    draw_spr(152, 0, 40, 40, 0, 0, 8, 8)
+    draw_spr(152, 0, 40, 40, 0, 200, 8, 8)
+    cx.restore()
+
+    draw_spr(0, 24, 40, 40, 480 - game.camera.frustum.x * 0.003, -80, 5, 5)
+
     for (let drop of game.cloud.rain_drops) {
         draw_spr(192, 160 + drop.animation.x * 8, 8, 8, drop.x, drop.y, 2, 2)
     }
