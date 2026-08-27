@@ -309,6 +309,10 @@ class Trails {
     }
 }
 
+class Rainbow {
+    constructor(public x: number, public y: number) { }
+}
+
 class Unicorn {
     get box() {
         return { x: this.arcade.body.x, y: this.arcade.body.y, w: 48 * 2, h: 36 * 2 }
@@ -362,8 +366,8 @@ class PlatformGenerator {
             '4': [new Platform(0, 365, 1920, '4')],
             '0': [new Platform(0, 360, 1920, '0')],
             '1': [new Platform(0, 280, 600, '1'), new Platform(0, 280, 600, '1'), new Platform(0, 280, 600, '1'),],
-            '2': [new Platform(0, 320, 300, '2'), new Platform(0, 240, 300, '2'), new Platform(0, 240, 300, '2'),],
-            '3': [new Platform(0, 240, 200, '3'), new Platform(0, 240, 200, '3'), new Platform(0, 240, 200, '3')],
+            '2': [new Platform(0, 320, 333, '2'), new Platform(0, 240, 333, '2'), new Platform(0, 240, 333, '2'),],
+            '3': [new Platform(0, 240, 240, '3'), new Platform(0, 240, 240, '3'), new Platform(0, 240, 240, '3')],
         }
 
         this.blit_canvas = {
@@ -412,7 +416,12 @@ class PlatformGenerator {
     update() {
 
         while (game.platforms.length < 3) {
-            game.platforms.push(this.pullPlatform())
+            let platform = this.pullPlatform()
+            game.platforms.push(platform)
+
+            if (platform.label === '5') {
+                game.rainbow = new Rainbow(platform.x + platform.width - 600, 360 - platform.height)
+            }
         }
 
         let leftMost = game.platforms[0]
@@ -496,6 +505,8 @@ class Game {
     generator: PlatformGenerator
     platforms: Platform[]
 
+    rainbow: Rainbow
+
     unicorn: Unicorn
 
     dust: Dust[]
@@ -505,6 +516,7 @@ class Game {
     cloud: Cloud
 
     constructor() {
+        this.rainbow = new Rainbow(1000, 360 - 365)
         this.trails = new Trails()
         this.cloud = new Cloud(0, 0)
         this.dust = []
@@ -666,6 +678,8 @@ export function _render() {
     }
 
 
+    draw_spr(48, 0, 112, 64, game.rainbow.x, game.rainbow.y - 320, 5, 5)
+
     if (game.show_end_menu) {
 
     }
@@ -680,7 +694,11 @@ export function _render() {
 }
 
 function render_unicorn() {
-    draw_spr(0 + game.unicorn.animation.x * 48, 160, 48, 36, game.unicorn.box.x, game.unicorn.box.y, 2, 2)
+    let y = 160
+    if (Math.abs(game.unicorn.box.x - game.rainbow.x) < 1000) {
+        y = 72
+    }
+    draw_spr(0 + game.unicorn.animation.x * 48, y, 48, 36, game.unicorn.box.x, game.unicorn.box.y, 2, 2)
 }
 
 function render_platform(platform: Platform) {
